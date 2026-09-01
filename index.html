@@ -266,10 +266,15 @@
 
       <!-- Action Buttons -->
       <div class="flex items-center gap-2 sm:gap-3">
-        <!-- Background Music / Chime Toggle -->
-        <button id="musicToggleBtn" title="Play celebration melody" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-card hover:bg-white text-xs sm:text-sm font-medium text-brand-dark border border-pink-200 shadow-sm transition-all hover:shadow-glow-pink">
+        <!-- Background Song Player Toggle -->
+        <button id="musicToggleBtn" onclick="toggleMusic()" title="Play birthday song" class="flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-card hover:bg-white text-xs sm:text-sm font-semibold text-brand-dark border border-pink-200 shadow-sm transition-all hover:shadow-glow-pink">
           <i data-lucide="music" class="w-4 h-4 text-brand-deepRose"></i>
-          <span id="musicStatusText" class="hidden sm:inline">Play Tune</span>
+          <span id="musicStatusText" class="hidden sm:inline">Play Song 🎵</span>
+          <div id="headerMusicWave" class="hidden items-end gap-0.5 h-3">
+            <span class="w-1 bg-brand-deepRose rounded-full animate-bounce h-1.5" style="animation-delay: 0.1s"></span>
+            <span class="w-1 bg-brand-gold rounded-full animate-bounce h-3" style="animation-delay: 0.3s"></span>
+            <span class="w-1 bg-brand-rose rounded-full animate-bounce h-2" style="animation-delay: 0.2s"></span>
+          </div>
         </button>
 
         <!-- Quick Launch Confetti -->
@@ -984,25 +989,27 @@
   </section>
 
   <!-- ======================================================== -->
-  <!-- DIGITAL SERVICE SELLER / CUSTOMIZATION BANNER (BONUS)    -->
+  <!-- FLOATING MUSIC PLAYER PILL WIDGET                        -->
   <!-- ======================================================== -->
-  <section class="max-w-4xl mx-auto px-4 mb-16">
-    <div class="glass-card rounded-3xl p-6 sm:p-8 border border-pink-200 shadow-glass text-center relative overflow-hidden">
-      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="text-left">
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-wider mb-2">
-            <i data-lucide="sparkle" class="w-3.5 h-3.5 text-brand-gold"></i> Ready-to-Sell Digital Template
-          </span>
-          <h4 class="font-serif text-xl font-bold text-brand-dark">Easily Customizable in 2 Minutes</h4>
-          <p class="text-xs sm:text-sm text-brand-muted mt-1">Change names, dates, photos, and messages seamlessly at the top of the script tag.</p>
-        </div>
-        <button onclick="copyShareLink()" class="whitespace-nowrap px-6 py-3 rounded-full bg-brand-dark hover:bg-gray-800 text-white text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-md hover:scale-105 active:scale-95 transition-all">
-          <i data-lucide="share-2" class="w-4 h-4 text-brand-gold"></i>
-          <span id="shareBtnText">Share Website Link</span>
-        </button>
+  <div class="fixed bottom-6 right-6 z-50">
+    <button id="floatingMusicBtn" onclick="toggleMusic()" class="flex items-center gap-2.5 px-4 py-2.5 rounded-full glass-card-gold border-2 border-brand-gold/60 shadow-luxury hover:shadow-glow-gold hover:scale-105 active:scale-95 transition-all text-xs sm:text-sm font-bold text-brand-dark group backdrop-blur-md">
+      <div id="floatingVinyl" class="w-7 h-7 rounded-full bg-brand-dark flex items-center justify-center text-xs text-amber-300 shadow-sm transition-transform duration-700">
+        🎵
       </div>
-    </div>
-  </section>
+      <span id="floatingMusicText" class="text-brand-dark font-semibold">Play Birthday Song 🎶</span>
+      <div id="floatingWave" class="hidden items-end gap-0.5 h-3.5">
+        <span class="w-1 bg-brand-deepRose rounded-full animate-bounce h-2" style="animation-delay: 0.1s"></span>
+        <span class="w-1 bg-brand-gold rounded-full animate-bounce h-3.5" style="animation-delay: 0.3s"></span>
+        <span class="w-1 bg-brand-rose rounded-full animate-bounce h-2.5" style="animation-delay: 0.2s"></span>
+      </div>
+    </button>
+  </div>
+
+  <!-- Background Celebration Audio Stream -->
+  <audio id="birthdayAudio" loop preload="auto">
+    <source src="https://assets.mixkit.co/music/preview/mixkit-happy-birthday-to-you-443.mp3" type="audio/mpeg" />
+    <source src="https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f792cb.mp3?filename=happy-birthday-125433.mp3" type="audio/mpeg" />
+  </audio>
 
   <!-- ======================================================== -->
   <!-- FOOTER                                                   -->
@@ -1493,77 +1500,82 @@
       }
     }
 
-    function initMusicToggle() {
-      const btn = document.getElementById('musicToggleBtn');
-      const text = document.getElementById('musicStatusText');
+    /* ==========================================================
+       9. BIRTHDAY SONG AUDIO PLAYER ENGINE
+       ========================================================== */
+    let isSongPlaying = false;
+    let songAudio = null;
 
-      if (!btn) return;
-
-      btn.addEventListener('click', () => {
-        if (!isPlayingTune) {
-          playBirthdayMelody();
-          isPlayingTune = true;
-          if (text) text.innerText = 'Playing ✨';
-          btn.classList.add('bg-pink-100', 'border-pink-400');
-        } else {
-          isPlayingTune = false;
-          if (text) text.innerText = 'Play Tune';
-          btn.classList.remove('bg-pink-100', 'border-pink-400');
+    function getBirthdayAudio() {
+      if (!songAudio) {
+        songAudio = document.getElementById('birthdayAudio');
+        if (!songAudio) {
+          songAudio = new Audio("https://assets.mixkit.co/music/preview/mixkit-happy-birthday-to-you-443.mp3");
+          songAudio.loop = true;
         }
-      });
+        songAudio.volume = 0.75;
+
+        // Fallback if primary stream blocked
+        songAudio.addEventListener('error', () => {
+          console.warn("Retrying with alternate audio stream...");
+          songAudio.src = "https://cdn.pixabay.com/download/audio/2022/10/14/audio_9939f792cb.mp3?filename=happy-birthday-125433.mp3";
+          if (isSongPlaying) songAudio.play();
+        });
+      }
+      return songAudio;
     }
 
-    function playBirthdayMelody() {
-      const ctx = getAudioContext();
-      
-      // Happy Birthday Melody notes (Freq in Hz, Duration in seconds)
-      const notes = [
-        { f: 261.63, d: 0.3 }, // C4
-        { f: 261.63, d: 0.3 }, // C4
-        { f: 293.66, d: 0.5 }, // D4
-        { f: 261.63, d: 0.5 }, // C4
-        { f: 349.23, d: 0.5 }, // F4
-        { f: 329.63, d: 0.8 }, // E4
-        
-        { f: 261.63, d: 0.3 }, // C4
-        { f: 261.63, d: 0.3 }, // C4
-        { f: 293.66, d: 0.5 }, // D4
-        { f: 261.63, d: 0.5 }, // C4
-        { f: 392.00, d: 0.5 }, // G4
-        { f: 349.23, d: 0.8 }, // F4
-        
-        { f: 261.63, d: 0.3 }, // C4
-        { f: 261.63, d: 0.3 }, // C4
-        { f: 523.25, d: 0.6 }, // C5
-        { f: 440.00, d: 0.5 }, // A4
-        { f: 349.23, d: 0.5 }, // F4
-        { f: 329.63, d: 0.5 }, // E4
-        { f: 293.66, d: 0.6 }, // D4
-        
-        { f: 466.16, d: 0.3 }, // Bb4
-        { f: 466.16, d: 0.3 }, // Bb4
-        { f: 440.00, d: 0.5 }, // A4
-        { f: 349.23, d: 0.5 }, // F4
-        { f: 392.00, d: 0.5 }, // G4
-        { f: 349.23, d: 1.0 }, // F4
-      ];
+    function toggleMusic() {
+      const audio = getBirthdayAudio();
 
-      let accumulatedTime = 0;
-      notes.forEach(note => {
-        setTimeout(() => {
-          if (isPlayingTune) {
-            playChimeTone(note.f, note.d);
-          }
-        }, accumulatedTime * 1000);
-        accumulatedTime += note.d + 0.08;
-      });
+      if (!isSongPlaying) {
+        audio.play().then(() => {
+          isSongPlaying = true;
+          updateMusicUI(true);
+          // Trigger confetti on start
+          confetti({
+            particleCount: 35,
+            spread: 50,
+            origin: { y: 0.8 },
+            colors: ['#D4AF37', '#F472B6', '#FFF']
+          });
+        }).catch(err => {
+          console.warn("Audio play prevented:", err);
+        });
+      } else {
+        audio.pause();
+        isSongPlaying = false;
+        updateMusicUI(false);
+      }
+    }
 
-      // Loop after finish if still enabled
-      setTimeout(() => {
-        if (isPlayingTune) {
-          playBirthdayMelody();
-        }
-      }, (accumulatedTime + 1) * 1000);
+    function updateMusicUI(playing) {
+      const headerText = document.getElementById('musicStatusText');
+      const headerWave = document.getElementById('headerMusicWave');
+      const floatingText = document.getElementById('floatingMusicText');
+      const floatingWave = document.getElementById('floatingWave');
+      const floatingVinyl = document.getElementById('floatingVinyl');
+      const headerBtn = document.getElementById('musicToggleBtn');
+
+      if (playing) {
+        if (headerText) headerText.innerText = 'Pause Song ⏸️';
+        if (headerWave) { headerWave.classList.remove('hidden'); headerWave.classList.add('flex'); }
+        if (floatingText) floatingText.innerText = 'Pause Song ⏸️';
+        if (floatingWave) { floatingWave.classList.remove('hidden'); floatingWave.classList.add('flex'); }
+        if (floatingVinyl) { floatingVinyl.classList.add('animate-spin'); }
+        if (headerBtn) { headerBtn.classList.add('bg-pink-100', 'border-pink-300'); }
+      } else {
+        if (headerText) headerText.innerText = 'Play Song 🎵';
+        if (headerWave) { headerWave.classList.add('hidden'); headerWave.classList.remove('flex'); }
+        if (floatingText) floatingText.innerText = 'Play Birthday Song 🎶';
+        if (floatingWave) { floatingWave.classList.add('hidden'); floatingWave.classList.remove('flex'); }
+        if (floatingVinyl) { floatingVinyl.classList.remove('animate-spin'); }
+        if (headerBtn) { headerBtn.classList.remove('bg-pink-100', 'border-pink-300'); }
+      }
+    }
+
+    function initMusicToggle() {
+      // Audio is ready to play
     }
 
     /* ==========================================================
